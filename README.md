@@ -60,7 +60,7 @@ High-level system flow:
 4. Results are stored and visualized in dashboard
 
 More details can be found in:
-👉 `diagrams/architecture.md`
+👉 `diagrams/architecture.svg`
 
 ---
 
@@ -82,7 +82,7 @@ Includes:
 - Data aggregation
 
 See:
-👉 `ai-model/pipeline.md`
+👉 `diagrams/ai-pipeline.svg`
 
 ---
 
