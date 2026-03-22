@@ -17,13 +17,23 @@ function initCampaign(id, name, location) {
         campaigns[id] = {
             id,
             name: name || `Campaign-${id}`, // Ensure name is set
-            locations: new Set(), // Use a Set for locations
+            locationStats: {}, // Use dictionary for locations
             totalAudience: 0,
             totalAttentionSeconds: 0, // New field to store sum of attention times
-            eventsCount: 0
+            eventsCount: 0,
+            audienceLog: [] // Store individual detection events
         };
     }
-    campaigns[id].locations.add(location); // Add location to the Set
+    if (location && typeof location === 'string') {
+        if (!campaigns[id].locationStats[location]) {
+            campaigns[id].locationStats[location] = {
+                name: location,
+                totalAudience: 0,
+                totalAttentionSeconds: 0,
+                eventsCount: 0
+            };
+        }
+    }
 }
 
 app.post('/api/events', (req, res) => {
@@ -34,10 +44,27 @@ app.post('/api/events', (req, res) => {
     const c = campaigns[event.campaign_id];
     const a = event.audience;
     
-    c.totalAudience += a.total_count;
+    const count = a.total_count || 0;
+    const newAtt = a.attention.average_attention_time_seconds || 0;
+
+    c.totalAudience += count;
     c.eventsCount++;
-    const newAtt = a.attention.average_attention_time_seconds;
-    c.totalAttentionSeconds += newAtt; // Accumulate total attention seconds
+    c.totalAttentionSeconds += newAtt;
+
+    if (event.location && c.locationStats[event.location]) {
+        const loc = c.locationStats[event.location];
+        loc.totalAudience += count;
+        loc.totalAttentionSeconds += newAtt;
+        loc.eventsCount++;
+    }
+
+    c.audienceLog.unshift({
+        timestamp: event.timestamp || Date.now(),
+        location: event.location,
+        audienceCount: count,
+        attentionTime: newAtt
+    });
+    if (c.audienceLog.length > 50) c.audienceLog.pop(); // Keep top 50 recent audiences for this campaign
     
     recentEvents.unshift(event);
     if (recentEvents.length > MAX_EVENTS) recentEvents.pop();
@@ -63,9 +90,16 @@ app.get('/api/stats', (req, res) => {
 
     // Generate campaigns list
     const campaignsList = Object.values(campaigns).map(c => {
+        const processedLocations = Object.values(c.locationStats).map(loc => ({
+            name: loc.name,
+            audience: loc.totalAudience + (multiplier > 1 ? Math.floor(loc.totalAudience * multiplier * (Math.random() + 0.5)) : 0),
+            attention: loc.eventsCount > 0 ? +(loc.totalAttentionSeconds / loc.eventsCount).toFixed(1) : 0
+        }));
+
         return {
             ...c,
-            locations: Array.from(c.locations), // Convert Set to Array for JSON serialization
+            locations: processedLocations, // Swap simple strings with objects containing full stats
+            audienceLog: c.audienceLog,    // Pass to frontend
             averageAttentionTime: c.eventsCount > 0 ? (c.totalAttentionSeconds / c.eventsCount) : 0, // Calculate average
             // Scale the numbers purely for visual mock effect
             displayAudience: c.totalAudience + (multiplier > 1 ? Math.floor(c.totalAudience * multiplier * (Math.random() + 0.5)) : 0)
@@ -77,7 +111,7 @@ app.get('/api/stats', (req, res) => {
     const overallAudience = totalAudience + (multiplier > 1 ? Math.floor(totalAudience * multiplier) : 0);
     
     // Average overall Attention Time
-    const activeCampaigns = Object.values(campaigns).filter(c => c.eventsCount > 0);
+    const activeCampaigns = campaignsList.filter(c => c.eventsCount > 0);
     let overallAttention = 0;
     if (activeCampaigns.length > 0) {
         overallAttention = activeCampaigns.reduce((acc, c) => acc + c.averageAttentionTime, 0) / activeCampaigns.length;

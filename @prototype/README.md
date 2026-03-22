@@ -21,6 +21,9 @@ Terminal Kedua: Menjalankan skrip Python yang berperan menyimulasikan tangkapan 
 
 ```bash
 cd "@prototype/sample-ai"
+# Aktifkan virtual environment (wajib dilakukan agar pip berjalan lancar)
+source venv/bin/activate     
+
 pip install requests         # Skrip ini butuh paket 'requests' untuk HTTP call
 python3 mock_detector.py     # Menjalankan pembuaya aktivitas simulasi
 ```
