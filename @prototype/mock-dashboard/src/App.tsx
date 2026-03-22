@@ -27,6 +27,7 @@ type StatsResponse = {
   scale: string;
   overallAudience: number;
   overallAttention: number;
+  insightSummary: string;
   campaigns: Campaign[];
   chartData: { label: string; value: number }[];
   recentEvents: EventPayload[];
@@ -184,6 +185,13 @@ function App() {
                     {stats()?.campaigns.length} <span class="card-unit">Video Iklan</span>
                   </div>
                 </div>
+              </div>
+
+              <div class="insight-highlight">
+                 <div class="insight-icon">💡</div>
+                 <div class="insight-text">
+                     <strong>AI Insights:</strong> {stats()?.insightSummary}
+                 </div>
               </div>
 
               <div class="chart-section" style="margin-bottom: 2rem;">

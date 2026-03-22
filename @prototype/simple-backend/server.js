@@ -76,10 +76,26 @@ app.get('/api/stats', (req, res) => {
         overallAttention = activeCampaigns.reduce((acc, c) => acc + c.averageAttentionTime, 0) / activeCampaigns.length;
     }
 
+    // Generate AI Insight Summary
+    let topCampaignName = "";
+    let topAudience = 0;
+    campaignsList.forEach(c => {
+        if (c.displayAudience > topAudience) {
+            topAudience = c.displayAudience;
+            topCampaignName = c.name;
+        }
+    });
+
+    let timeText = scale === 'day' ? 'hari ini' : (scale === 'week' ? 'minggu ini' : 'bulan ini');
+    let insightSummary = campaignsList.length === 0 
+        ? "Sedang mengumpulkan data audiens..." 
+        : `Sepanjang ${timeText}, interaksi audiens terpantau aktif dengan puncak minat tertinggi pada kampanye "${topCampaignName || 'Berbagai Iklan'}". Retensi perhatian penonton rata-rata stabil di angka ${overallAttention.toFixed(1)} detik.`;
+
     res.json({
         scale,
         overallAudience,
         overallAttention,
+        insightSummary,
         campaigns: campaignsList,
         chartData,
         recentEvents: recentEvents.slice(0, 10)
