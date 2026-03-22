@@ -7,17 +7,21 @@ import requests
 BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:3000/api/events")
 
 CAMPAIGNS = [
-    {"id": "c_001", "name": "Iklan Mobil Listrik", "location": "Bundaran HI, Jakarta Pusat"},
-    {"id": "c_002", "name": "Peluncuran Minuman Energi", "location": "SCBD, Jakarta Selatan"},
-    {"id": "c_003", "name": "Promo Skincare Baru", "location": "Pakuwon Mall, Surabaya"}
+    {"id": "c_001", "name": "Promo Skincare Baru", "locations": ["Pakuwon Mall, Surabaya", "Tunjungan Plaza, Surabaya", "Grand Indonesia, Jakarta"]},
+    {"id": "c_002", "name": "Iklan Mobil Listrik", "locations": ["Bundaran HI, Jakarta Pusat", "Jenderal Sudirman, Jakarta Selatan"]},
+    {"id": "c_003", "name": "Kampanye Layanan Publik", "locations": ["Halte TransJakarta Karet", "Stasiun MRT Blok M", "Stasiun Sudirman"]},
+    {"id": "c_004", "name": "Peluncuran Minuman Energi", "locations": ["Gelora Bung Karno", "Pantai Indah Kapuk"]},
 ]
 
 def generate_mock_data(campaign):
+    # Pick one random location out of the available locations for this campaign
+    current_location = random.choice(campaign["locations"])
+
     return {
         "timestamp": time.time() * 1000,
         "campaign_id": campaign["id"],
         "campaign_name": campaign["name"],
-        "location": campaign["location"],
+        "location": current_location,
         "audience": {
             "total_count": random.randint(0, 30),
             "demographics": {

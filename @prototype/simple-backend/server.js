@@ -15,12 +15,15 @@ const MAX_EVENTS = 50;
 function initCampaign(id, name, location) {
     if (!campaigns[id]) {
         campaigns[id] = {
-            id, name, location,
+            id,
+            name: name || `Campaign-${id}`, // Ensure name is set
+            locations: new Set(), // Use a Set for locations
             totalAudience: 0,
-            averageAttentionTime: 0,
+            totalAttentionSeconds: 0, // New field to store sum of attention times
             eventsCount: 0
         };
     }
+    campaigns[id].locations.add(location); // Add location to the Set
 }
 
 app.post('/api/events', (req, res) => {
@@ -34,7 +37,7 @@ app.post('/api/events', (req, res) => {
     c.totalAudience += a.total_count;
     c.eventsCount++;
     const newAtt = a.attention.average_attention_time_seconds;
-    c.averageAttentionTime = c.averageAttentionTime === 0 ? newAtt : (c.averageAttentionTime * 0.9) + (newAtt * 0.1);
+    c.totalAttentionSeconds += newAtt; // Accumulate total attention seconds
     
     recentEvents.unshift(event);
     if (recentEvents.length > MAX_EVENTS) recentEvents.pop();
@@ -59,11 +62,15 @@ app.get('/api/stats', (req, res) => {
     }));
 
     // Generate campaigns list
-    const campaignsList = Object.values(campaigns).map(c => ({
-        ...c,
-        // Scale the numbers purely for visual mock effect
-        displayAudience: c.totalAudience + (multiplier > 1 ? Math.floor(c.totalAudience * multiplier * (Math.random() + 0.5)) : 0)
-    }));
+    const campaignsList = Object.values(campaigns).map(c => {
+        return {
+            ...c,
+            locations: Array.from(c.locations), // Convert Set to Array for JSON serialization
+            averageAttentionTime: c.eventsCount > 0 ? (c.totalAttentionSeconds / c.eventsCount) : 0, // Calculate average
+            // Scale the numbers purely for visual mock effect
+            displayAudience: c.totalAudience + (multiplier > 1 ? Math.floor(c.totalAudience * multiplier * (Math.random() + 0.5)) : 0)
+        };
+    });
     
     // Overall Stats
     const totalAudience = Object.values(campaigns).reduce((acc, c) => acc + c.totalAudience, 0);

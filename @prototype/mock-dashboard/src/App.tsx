@@ -5,7 +5,7 @@ import './index.css';
 type Campaign = {
   id: string;
   name: string;
-  location: string;
+  locations: string[]; // Changed from 'location: string' to 'locations: string[]'
   totalAudience: number;
   displayAudience: number;
   averageAttentionTime: number;
@@ -40,9 +40,13 @@ function App() {
   const [selectedCampaign, setSelectedCampaign] = createSignal<Campaign | null>(null);
 
   let chartCanvas: HTMLCanvasElement | undefined;
+  let pieCanvas: HTMLCanvasElement | undefined;
+  let doughnutCanvas: HTMLCanvasElement | undefined;
   let chartInstance: Chart | null = null;
+  let pieInstance: Chart | null = null;
+  let doughnutInstance: Chart | null = null;
 
-  const fetchStats = async () => {
+  const fetchData = async () => { // Renamed from fetchStats
     try {
       const res = await fetch(`http://localhost:3000/api/stats?timeScale=${timeScale()}`);
       if (res.ok) {
@@ -50,7 +54,8 @@ function App() {
         setStats(data);
         setIsConnected(true);
         updateChart(data.chartData);
-        
+        updatePieCharts(data.campaigns); // Call to update pie charts
+
         // If a campaign is currently selected, update its reference to latest data
         if (selectedCampaign()) {
            const updated = data.campaigns.find(c => c.id === selectedCampaign()?.id);
@@ -67,7 +72,7 @@ function App() {
 
     // Default height handling in case container is weird
     if (chartCanvas) {
-        chartCanvas.style.height = '230px'; 
+        chartCanvas.style.height = '230px';
     }
 
     if (chartInstance) {
@@ -75,7 +80,7 @@ function App() {
       chartInstance.data.datasets[0].data = values;
       chartInstance.update('none'); // silent update without animation flash
     } else {
-      
+
       // Creating a gradient fill for the chart line
       const ctx = chartCanvas.getContext('2d');
       let gradient: string | CanvasGradient = 'rgba(0, 245, 255, 0.1)';
@@ -117,11 +122,79 @@ function App() {
     }
   };
 
+  const updatePieCharts = (campaigns: Campaign[]) => {
+    if (!stats()) return; // Ensure stats are available
+
+    const campaignNames = campaigns.map((c: Campaign) => c.name);
+    const campaignAudiences = campaigns.map((c: Campaign) => c.displayAudience);
+    const campaignEvents = campaigns.map((c: Campaign) => c.eventsCount);
+    const colors = ['#00f5ff', '#ffb703', '#b5179e', '#10b981', '#f43f5e', '#a855f7'];
+
+    // Pie Chart (Total Audiens)
+    if (pieInstance) {
+      pieInstance.data.labels = campaignNames;
+      pieInstance.data.datasets[0].data = campaignAudiences;
+      pieInstance.update('none');
+    } else if (pieCanvas) {
+      pieInstance = new Chart(pieCanvas, {
+        type: 'pie',
+        data: {
+          labels: campaignNames,
+          datasets: [{
+            data: campaignAudiences,
+            backgroundColor: colors.slice(0, campaignNames.length).map(c => c + 'D9'),
+            borderColor: '#060A1C',
+            borderWidth: 2,
+            hoverOffset: 8
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'right', labels: { color: '#f8fafc', font: {family: 'Inter'}, usePointStyle: true, boxWidth: 8 } }
+          }
+        }
+      });
+    }
+
+    // Doughnut Chart (Frekuensi Tayang/Iklan apa saja yang ada)
+    if (doughnutInstance) {
+      doughnutInstance.data.labels = campaignNames;
+      doughnutInstance.data.datasets[0].data = campaignEvents;
+      doughnutInstance.update('none');
+    } else if (doughnutCanvas) {
+      doughnutInstance = new Chart(doughnutCanvas, {
+        type: 'doughnut',
+        data: {
+          labels: campaignNames,
+          datasets: [{
+            data: campaignEvents,
+            backgroundColor: colors.slice(0, campaignNames.length).map(c => c + 'D9'),
+            borderColor: '#060A1C',
+            borderWidth: 2,
+            hoverOffset: 8
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: '65%',
+          plugins: {
+            legend: { position: 'right', labels: { color: '#f8fafc', font: {family: 'Inter'}, usePointStyle: true, boxWidth: 8 } }
+          }
+        }
+      });
+    }
+  };
+
   onMount(() => {
-    const interval = setInterval(fetchStats, 1500);
+    const interval = setInterval(fetchData, 1500); // Call fetchData
     onCleanup(() => {
         clearInterval(interval);
         if (chartInstance) chartInstance.destroy();
+        if (pieInstance) pieInstance.destroy(); // Cleanup pie chart
+        if (doughnutInstance) doughnutInstance.destroy(); // Cleanup doughnut chart
     });
   });
 
@@ -134,9 +207,9 @@ function App() {
         </div>
         <div class="header-controls">
             <div class="time-filters">
-              <button class={timeScale() === 'day' ? 'active' : ''} onClick={() => {setTimeScale('day'); fetchStats();}}>Hari</button>
-              <button class={timeScale() === 'week' ? 'active' : ''} onClick={() => {setTimeScale('week'); fetchStats();}}>Minggu</button>
-              <button class={timeScale() === 'month' ? 'active' : ''} onClick={() => {setTimeScale('month'); fetchStats();}}>Bulan</button>
+              <button class={timeScale() === 'day' ? 'active' : ''} onClick={() => {setTimeScale('day'); fetchData();}}>Hari</button>
+              <button class={timeScale() === 'week' ? 'active' : ''} onClick={() => {setTimeScale('week'); fetchData();}}>Minggu</button>
+              <button class={timeScale() === 'month' ? 'active' : ''} onClick={() => {setTimeScale('month'); fetchData();}}>Bulan</button>
             </div>
             <div class="status-badge" style={!isConnected() ? 'color: #ef4444; background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.3);' : ''}>
               {isConnected() ? 'Live Data AI' : 'Terputus...'}
@@ -151,8 +224,8 @@ function App() {
                 <div class="glass-card" style="margin-top: 1rem;">
                     <div style="display:flex; justify-content:space-between; align-items:flex-start;">
                         <div>
-                            <h2 style="margin-top:0; font-size:2rem; color: #fff;">{selectedCampaign()?.name}</h2>
-                            <p class="location-tag">📍 {selectedCampaign()?.location}</p>
+                            <div style="font-weight: 600; font-size: 1.1rem; color: #fff;">{selectedCampaign()?.name}</div> {/* Changed h2 to div */}
+                            <p class="location-tag">📍 {selectedCampaign()?.locations?.length || 0} Lokasi Penayangan</p> {/* Updated location display */}
                         </div>
                         <div class="status-badge" style="color: var(--accent-cyan); border-color: var(--accent-cyan);">ID: {selectedCampaign()?.id}</div>
                     </div>
@@ -183,7 +256,7 @@ function App() {
                     {stats()?.overallAudience.toLocaleString()} <span class="card-unit">Orang</span>
                   </div>
                 </div>
-                
+
                 <div class="glass-card">
                   <div class="card-icon">⏱️</div>
                   <div class="card-title">RATA-RATA WAKTU PERHATIAN</div>
@@ -208,32 +281,43 @@ function App() {
                  </div>
               </div>
 
-              <div class="chart-section" style="margin-bottom: 2rem;">
-                <div class="glass-card chart-container" style="height: 320px; box-sizing: border-box;">
-                  <h3 style="margin-top: 0; margin-bottom: 1rem;">Tren Audiens ({timeScale() === 'day' ? 'Hari Ini' : (timeScale() === 'week' ? 'Minggu Ini' : 'Bulan Ini')})</h3>
-                  <div style="height: 230px; position:relative;">
-                      <canvas ref={chartCanvas}></canvas>
+              <div class="pie-charts-grid" style="margin-bottom: 2rem;">
+                  <div class="glass-card chart-container" style="height: 280px; box-sizing: border-box; display: flex; flex-direction: column;">
+                    <h3 style="margin-top: 0; margin-bottom: 0.5rem; font-size: 1rem;">Proporsi Total Audiens</h3>
+                    <div style="flex: 1; position: relative;"><canvas ref={pieCanvas}></canvas></div>
                   </div>
-                </div>
+                  <div class="glass-card chart-container" style="height: 280px; box-sizing: border-box; display: flex; flex-direction: column;">
+                    <h3 style="margin-top: 0; margin-bottom: 0.5rem; font-size: 1rem;">Proporsi Distribusi Aktivitas Iklan</h3>
+                    <div style="flex: 1; position: relative;"><canvas ref={doughnutCanvas}></canvas></div>
+                  </div>
+              </div>
 
-                <div class="glass-card" style="height: 320px; box-sizing: border-box; display:flex; flex-direction:column;">
-                  <h3 style="margin-top: 0; margin-bottom: 1rem;">Aktifitas Terkini</h3>
-                  <div class="activity-feed" style="flex: 1;">
-                    <For each={stats()?.recentEvents}>{(event) => (
-                      <div class="feed-item">
-                        <div style="font-size: 0.8rem; font-family: monospace; color: var(--text-secondary)">
-                          {new Date(event.timestamp).toLocaleTimeString()} • {event.location}
-                        </div>
-                        <div style="font-weight: 600; margin: 0.2rem 0; color: #fff;">{event.campaign_name}</div>
-                        <div style="display:flex; justify-content:space-between; font-size: 0.85rem">
-                          <span style="color: var(--accent-cyan);">👤 {event.audience.total_count} terdeteksi</span>
-                          <span style="color: var(--accent-purple);">⏱️ {event.audience.attention.average_attention_time_seconds.toFixed(1)}s avg</span>
-                        </div>
-                      </div>
-                    )}</For>
-                    {stats()?.recentEvents.length === 0 && <span style="color:var(--text-secondary);">Belum ada data...</span>}
+              <div class="chart-section" style="margin-bottom: 2rem;">
+                  <div class="glass-card chart-container" style="height: 320px; box-sizing: border-box;">
+                    <h3 style="margin-top: 0; margin-bottom: 1rem;">Tren Audiens ({timeScale() === 'day' ? 'Hari Ini' : (timeScale() === 'week' ? 'Minggu Ini' : 'Bulan Ini')})</h3>
+                    <div style="height: 250px; position:relative;">
+                        <canvas ref={chartCanvas}></canvas>
+                    </div>
                   </div>
-                </div>
+
+                  <div class="glass-card" style="height: 320px; box-sizing: border-box; display:flex; flex-direction:column;">
+                    <h3 style="margin-top: 0; margin-bottom: 1rem;">Aktifitas Terkini</h3>
+                    <div class="activity-feed" style="flex: 1;">
+                      <For each={stats()?.recentEvents}>{(event) => (
+                        <div class="feed-item">
+                          <div style="font-size: 0.8rem; font-family: monospace; color: var(--text-secondary)">
+                            {new Date(event.timestamp).toLocaleTimeString()} • {event.location}
+                          </div>
+                          <div style="font-weight: 600; margin: 0.2rem 0; color: #fff;">{event.campaign_name}</div>
+                          <div style="display:flex; justify-content:space-between; font-size: 0.85rem">
+                            <span style="color: var(--accent-cyan);">👤 {event.audience.total_count} terdeteksi</span>
+                            <span style="color: var(--accent-purple);">⏱️ {event.audience.attention.average_attention_time_seconds.toFixed(1)}s avg</span>
+                          </div>
+                        </div>
+                      )}</For>
+                      {stats()?.recentEvents.length === 0 && <span style="color:var(--text-secondary);">Belum ada data...</span>}
+                    </div>
+                  </div>
               </div>
 
               <h3 style="margin-bottom:0.5rem;">Daftar Iklan & Lokasi (Detail)</h3>
@@ -243,7 +327,7 @@ function App() {
                      <div class="glass-card campaign-card" onClick={() => setSelectedCampaign(c)}>
                          <div>
                              <h4>{c.name}</h4>
-                             <span class="location-tag">📍 {c.location}</span>
+                             <span class="location-tag">📍 {c.locations?.length || 0} Titik Lokasi</span>
                          </div>
                          <div style="text-align: right;">
                              <div style="font-size: 1.2rem; font-weight: bold; color: var(--accent-color);">{c.displayAudience.toLocaleString()} <span style="font-size:0.8rem; font-weight:normal;">Audiens</span></div>

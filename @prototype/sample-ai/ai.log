@@ -1,0 +1,4 @@
+Traceback (most recent call last):
+  File "/Users/gracia/Documents/Kerjaan/DFM/AI Videotron/Dokumentasi/@prototype/sample-ai/mock_detector.py", line 5, in <module>
+    import requests
+ModuleNotFoundError: No module named 'requests'
