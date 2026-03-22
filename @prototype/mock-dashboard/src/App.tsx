@@ -75,6 +75,16 @@ function App() {
       chartInstance.data.datasets[0].data = values;
       chartInstance.update('none'); // silent update without animation flash
     } else {
+      
+      // Creating a gradient fill for the chart line
+      const ctx = chartCanvas.getContext('2d');
+      let gradient: string | CanvasGradient = 'rgba(0, 245, 255, 0.1)';
+      if (ctx) {
+          gradient = ctx.createLinearGradient(0, 0, 0, 400);
+          gradient.addColorStop(0, 'rgba(0, 245, 255, 0.4)');
+          gradient.addColorStop(1, 'rgba(0, 245, 255, 0.0)');
+      }
+
       chartInstance = new Chart(chartCanvas, {
         type: 'line',
         data: {
@@ -82,9 +92,13 @@ function App() {
           datasets: [{
             label: 'Tren Audiens',
             data: values,
-            borderColor: '#6366f1',
-            backgroundColor: 'rgba(99, 102, 241, 0.2)',
-            borderWidth: 2,
+            borderColor: '#00f5ff',
+            backgroundColor: gradient as any,
+            borderWidth: 3,
+            pointBackgroundColor: '#00f5ff',
+            pointBorderColor: '#ffffff',
+            pointRadius: 4,
+            pointHoverRadius: 6,
             tension: 0.4,
             fill: true
           }]
@@ -95,8 +109,8 @@ function App() {
           animation: { duration: 0 },
           plugins: { legend: { display: false } },
           scales: {
-            y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#a0aabf' } },
-            x: { grid: { display: false }, ticks: { color: '#a0aabf' } }
+            y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: '#7F8EA3' } },
+            x: { grid: { display: false }, ticks: { color: '#7F8EA3' } }
           }
         }
       });
@@ -137,24 +151,24 @@ function App() {
                 <div class="glass-card" style="margin-top: 1rem;">
                     <div style="display:flex; justify-content:space-between; align-items:flex-start;">
                         <div>
-                            <h2 style="margin-top:0; font-size:2rem;">{selectedCampaign()?.name}</h2>
+                            <h2 style="margin-top:0; font-size:2rem; color: #fff;">{selectedCampaign()?.name}</h2>
                             <p class="location-tag">📍 {selectedCampaign()?.location}</p>
                         </div>
-                        <div class="status-badge" style="color: #6366f1; border-color: var(--accent-color);">ID: {selectedCampaign()?.id}</div>
+                        <div class="status-badge" style="color: var(--accent-cyan); border-color: var(--accent-cyan);">ID: {selectedCampaign()?.id}</div>
                     </div>
 
                     <div class="grid-layout" style="margin-top:2rem;">
                         <div>
                             <p class="card-title">Estimasi Pencapaian Audiens</p>
-                            <h3 class="card-value">{selectedCampaign()?.displayAudience.toLocaleString()} <span class="card-unit">Orang</span></h3>
+                            <h3 class="card-value" style="color: var(--accent-orange);">{selectedCampaign()?.displayAudience.toLocaleString()} <span class="card-unit">Orang</span></h3>
                         </div>
                         <div>
                             <p class="card-title">Rata-rata Perhatian</p>
-                            <h3 class="card-value">{selectedCampaign()?.averageAttentionTime.toFixed(1)} <span class="card-unit">Detik</span></h3>
+                            <h3 class="card-value" style="color: var(--accent-purple);">{selectedCampaign()?.averageAttentionTime.toFixed(1)} <span class="card-unit">Detik</span></h3>
                         </div>
                         <div>
                             <p class="card-title">Interaksi Live Terdeteksi</p>
-                            <h3 class="card-value">{selectedCampaign()?.totalAudience.toLocaleString()} <span class="card-unit">Orang</span></h3>
+                            <h3 class="card-value" style="color: var(--accent-cyan);">{selectedCampaign()?.totalAudience.toLocaleString()} <span class="card-unit">Orang</span></h3>
                         </div>
                     </div>
                 </div>
@@ -165,23 +179,23 @@ function App() {
                 <div class="glass-card">
                   <div class="card-icon">👥</div>
                   <div class="card-title">TOTAL AUDIENS KESELURUHAN</div>
-                  <div class="card-value">
+                  <div class="card-value" style="color: var(--accent-cyan);">
                     {stats()?.overallAudience.toLocaleString()} <span class="card-unit">Orang</span>
                   </div>
                 </div>
                 
                 <div class="glass-card">
                   <div class="card-icon">⏱️</div>
-                  <div class="card-title">Rata-rata Waktu Perhatian</div>
-                  <div class="card-value">
+                  <div class="card-title">RATA-RATA WAKTU PERHATIAN</div>
+                  <div class="card-value" style="color: var(--accent-purple);">
                     {stats()?.overallAttention.toFixed(1)} <span class="card-unit">Detik</span>
                   </div>
                 </div>
 
                 <div class="glass-card">
                   <div class="card-icon">🎬</div>
-                  <div class="card-title">Kampanye Aktif</div>
-                  <div class="card-value">
+                  <div class="card-title">KAMPANYE AKTIF</div>
+                  <div class="card-value" style="color: var(--accent-orange);">
                     {stats()?.campaigns.length} <span class="card-unit">Video Iklan</span>
                   </div>
                 </div>
@@ -210,10 +224,10 @@ function App() {
                         <div style="font-size: 0.8rem; font-family: monospace; color: var(--text-secondary)">
                           {new Date(event.timestamp).toLocaleTimeString()} • {event.location}
                         </div>
-                        <div style="font-weight: 600; margin: 0.2rem 0;">{event.campaign_name}</div>
+                        <div style="font-weight: 600; margin: 0.2rem 0; color: #fff;">{event.campaign_name}</div>
                         <div style="display:flex; justify-content:space-between; font-size: 0.85rem">
-                          <span>👤 {event.audience.total_count} terdeteksi</span>
-                          <span style="color: var(--accent-color)">⏱️ {event.audience.attention.average_attention_time_seconds.toFixed(1)}s avg</span>
+                          <span style="color: var(--accent-cyan);">👤 {event.audience.total_count} terdeteksi</span>
+                          <span style="color: var(--accent-purple);">⏱️ {event.audience.attention.average_attention_time_seconds.toFixed(1)}s avg</span>
                         </div>
                       </div>
                     )}</For>
