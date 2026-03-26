@@ -34,7 +34,7 @@ type StatsResponse = {
   recentEvents: EventPayload[];
 };
 
-const API_URL = import.meta.env.VITE_API_VARIABLE;
+const API_URL = import.meta.env.VITE_API_AI_VARIABLE;
 
 function App() {
   const [stats, setStats] = createSignal<StatsResponse | null>(null);
