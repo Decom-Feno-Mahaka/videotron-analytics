@@ -34,7 +34,7 @@ type StatsResponse = {
   recentEvents: EventPayload[];
 };
 
-const API_URL = import.meta.env.VITE_API_URL;
+const API_URL = "https://videotron-analytics-backend-production.up.railway.app";
 
 function App() {
   const [stats, setStats] = createSignal<StatsResponse | null>(null);
